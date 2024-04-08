@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 
 class GridViewImage extends StatefulWidget {
@@ -11,7 +12,8 @@ class GridViewImage extends StatefulWidget {
 
 class _GridViewImageState extends State<GridViewImage> {
   final ImagePicker _picker = ImagePicker();
-  final List <XFile> _image = [];
+  final List<XFile> _images = [];
+  final storageRef = FirebaseStorage.instance.ref();
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +36,13 @@ class _GridViewImageState extends State<GridViewImage> {
             crossAxisSpacing: 4.0,
             mainAxisSpacing: 4.0,
           ),
-          itemCount: _image.length,
+          itemCount: _images.length,
           itemBuilder: (context, index) {
-            return Image.file(File(_image[index].path));
+            return Image.file(File(_images[index].path));
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.small(
+      floatingActionButton: FloatingActionButton(
         onPressed: getImage,
         child: const Icon(Icons.camera_alt),
       ),
@@ -50,8 +52,23 @@ class _GridViewImageState extends State<GridViewImage> {
   Future<void> getImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
-    setState(() {
-     image != null ?  _image.add(image) : 0;
-    });
+
+    if (image != null) {
+      setState(() {
+        _images.add(image);
+      });
+      uploadImageToFirebase(image);
+    }
   }
-}
+
+  Future<void> uploadImageToFirebase(XFile imageFile) async {
+
+      // Create a reference to the location you want to upload to in Firebase Storage
+      final Reference storageReference = storageRef.child("/photos/${DateTime.now().millisecondsSinceEpoch}.JPEG");
+
+
+      // Upload the file to Firebase Storage
+      await storageReference.putFile(File(imageFile.path));
+    }
+  }
+
